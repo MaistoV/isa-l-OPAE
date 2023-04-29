@@ -32,16 +32,24 @@
 #include "erasure_code.h"
 #include "ec_base.h"		// for GF tables
 
-void ec_init_tables(int k, int rows, unsigned char *a, unsigned char *g_tbls)
+void ec_init_tables(int erasure_pattern, int survival_pattern, unsigned char *a, unsigned char *g_tbls)
 {
-	int i, j;
 
-	for (i = 0; i < rows; i++) {
-		for (j = 0; j < k; j++) {
-			gf_vect_mul_init(*a++, g_tbls);
-			g_tbls += 32;
-		}
-	}
+	// Use the first two arguments to pass-in erasure and survival patterns
+	// Set global variables
+	erasure_pattern_global  = 0xffffu & (unsigned int)erasure_pattern;
+	survival_pattern_global = 0xffffu & (unsigned int)survival_pattern;
+
+	return;
+
+	// int i, j;
+
+	// for (i = 0; i < rows; i++) {
+	// 	for (j = 0; j < k; j++) {
+	// 		gf_vect_mul_init(*a++, g_tbls);
+	// 		g_tbls += 32;
+	// 	}
+	// }
 }
 
 unsigned char gf_mul(unsigned char a, unsigned char b)

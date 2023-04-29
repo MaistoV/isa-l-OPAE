@@ -55,23 +55,24 @@
 extern "C" {
 #endif
 
+// Global variables across function calls
+unsigned int erasure_pattern_global ;
+// Global variables across function calls
+unsigned int survival_pattern_global;
+
 /**
  * @brief Initialize tables for fast Erasure Code encode and decode.
  *
- * Generates the expanded tables needed for fast encode or decode for erasure
- * codes on blocks of data.  32bytes is generated for each input coefficient.
+ * Set survival and erasure patterns. Use same API as original ISA-L
  *
- * @param k      The number of vector sources or rows in the generator matrix
- *               for coding.
- * @param rows   The number of output vectors to concurrently encode/decode.
- * @param a      Pointer to sets of arrays of input coefficients used to encode
- *               or decode data.
- * @param gftbls Pointer to start of space for concatenated output tables
- *               generated from input coefficients.  Must be of size 32*k*rows.
+ * @param erasure_pattern      	Which cells were erased (1-hot for now)
+ * @param survived_pattern	   	Which k cells of the k+p are provided for reconstruction (k-hot).
+ * @param a      				Unused argument
+ * @param gftbls 				Unused argument
  * @returns none
  */
 
-void ec_init_tables(int k, int rows, unsigned char* a, unsigned char* gftbls);
+void ec_init_tables(int erasure_pattern, int survival_pattern, unsigned char* a, unsigned char* gftbls);
 
 /**
  * @brief Generate or decode erasure codes on blocks of data, runs appropriate version.

@@ -103,14 +103,24 @@ void ec_encode_data_avx(int len, int k, int rows, unsigned char *g_tbls, unsigne
 
 }
 
+///////////////////////////////////////////////////////////////////////
+// This file inclusion, it is ment for debug, not production
+///////////////////////////////////////////////////////////////////////
+#include "opae_simple_wrapper.c" 
+
 void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsigned char **data,
 			 unsigned char **coding)
 {
 
-	if (len < 32) {
-		ec_encode_data_base(len, k, rows, g_tbls, data, coding);
+	if (len < 64) { // FPGA minimum supported length
+		// NOTE: could initialize g_tbls and runs ec_encode_data_base here
+		// ec_encode_data_base(len, k, rows, g_tbls, data, coding);
 		return;
 	}
+
+	ec_encode_data_OPAE(len, k, rows, erasure_pattern_global, survival_pattern_global, data, coding);
+
+	return;
 
 	while (rows >= 6) {
 		gf_6vect_dot_prod_avx2(len, k, g_tbls, data, coding);
