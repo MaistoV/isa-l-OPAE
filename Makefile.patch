@@ -1,0 +1,13 @@
+diff --git a/home/vincenzo/Makefile.orig b/home/vincenzo/Makefile.new
+index 39c8648..1e0f28f 100644
+--- a/home/vincenzo/Makefile.orig
++++ b/home/vincenzo/Makefile.new
+@@ -1661,7 +1661,7 @@ INSTALL_PROGRAM = ${INSTALL}
+ INSTALL_SCRIPT = ${INSTALL}
+ INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
+ LD = /usr/bin/ld -m elf_x86_64
+-LDFLAGS = 
++LDFLAGS = -lopae-c
+ LIBOBJS = 
+ LIBS = 
+ LIBTOOL = $(SHELL) $(top_builddir)/libtool

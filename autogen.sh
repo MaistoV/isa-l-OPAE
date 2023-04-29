@@ -14,4 +14,5 @@ echo "Initialized build system. For a common configuration please run:"
 echo "----------------------------------------------------------------"
 echo
 echo "./configure $args"
+echo "patch Makefile Makefile.patch"
 echo
