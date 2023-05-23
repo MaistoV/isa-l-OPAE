@@ -113,8 +113,27 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 {
 
 	if (len < 64) { // FPGA minimum supported length
-		// NOTE: could initialize g_tbls and runs ec_encode_data_base here
+		// unsigned char* encoding_matrix;
+		// encoding_matrix = (unsigned char*)malloc( k * );
+
+		// // TODO: generate decoding matrix
+
+		// // Initialize g_tbls and runs ec_encode_data_base here
+		// for ( int i = 0; i < rows; i++ ) {
+		// 	for ( int j = 0; j < k; j++ ) {
+		// 		gf_vect_mul_init(*encoding_matrix++, g_tbls);
+		// 		g_tbls += 32;
+		// 	}
+		// }
 		// ec_encode_data_base(len, k, rows, g_tbls, data, coding);
+		printf("WARNING: len=%d < 64 is unsupported for now, returning\n", len);
+		return;
+	}
+
+	// Length must be multiple of 64 bytes
+	if ( len % 64 != 0 ) {
+		// Pad here
+		printf("WARNING: len=%d is not a multiple of 64, unsupported for now, returning\n", len);
 		return;
 	}
 
