@@ -137,35 +137,35 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 		return;
 	}
 
-	ec_encode_data_OPAE(len, k, rows, erasure_pattern_global, survival_pattern_global, data, coding);
+	// ec_encode_data_OPAE(len, k, rows, erasure_pattern_global, survival_pattern_global, data, coding);
 
-	return;
+	// return;
 
-	// while (rows >= 6) {
-	// 	gf_6vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-	// 	g_tbls += 6 * k * 32;
-	// 	coding += 6;
-	// 	rows -= 6;
-	// }
-	// switch (rows) {
-	// case 5:
-	// 	gf_5vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-	// 	break;
-	// case 4:
-	// 	gf_4vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-	// 	break;
-	// case 3:
-	// 	gf_3vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-	// 	break;
-	// case 2:
-	// 	gf_2vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-	// 	break;
-	// case 1:
-	// 	gf_vect_dot_prod_avx2(len, k, g_tbls, data, *coding);
-	// 	break;
-	// case 0:
-	// 	break;
-	// }
+	while (rows >= 6) {
+		gf_6vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		g_tbls += 6 * k * 32;
+		coding += 6;
+		rows -= 6;
+	}
+	switch (rows) {
+	case 5:
+		gf_5vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		break;
+	case 4:
+		gf_4vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		break;
+	case 3:
+		gf_3vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		break;
+	case 2:
+		gf_2vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		break;
+	case 1:
+		gf_vect_dot_prod_avx2(len, k, g_tbls, data, *coding);
+		break;
+	case 0:
+		break;
+	}
 
 }
 
