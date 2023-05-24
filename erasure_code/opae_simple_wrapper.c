@@ -622,6 +622,11 @@ void ec_encode_data_OPAE (  int cell_length,
 	printf("%s:%d survived_cells	: 0x%04x\n"	, __FILE__, __LINE__, survived_cells	);
 	printf("%s:%d cell_length_cci_byte_width	: 0x%04x\n"	, __FILE__, __LINE__, cell_length_cci_byte_width	);
 #endif
+
+	// Dirty trick:
+	// Skip call to AFU
+	goto out_cleanup;
+
     // Call to OPAE AFU
     res = OPAE_SIMPLE_WRAPPER_call_afu( accel_handle, 
                                         erasure_pattern, 
