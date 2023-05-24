@@ -561,11 +561,14 @@ void ec_encode_data_OPAE (  int cell_length,
                             unsigned char **coding
                             ) {
 
-    fpga_result res = FPGA_OK;
+	volatile fpga_result res = FPGA_OK; // Just for dirty
 	fpga_handle accel_handle;
 	fpga_event_handle fpgaInterruptEvent;
-
-    if ( num_errors != 1 ) {
+	
+	// Dirty
+	goto out_exit;
+    
+	if ( num_errors != 1 ) {
         fprintf(stderr, "%s:%d: num_errors=%d not supported, supported value is 1\n", __FILE__, __LINE__, num_errors);
         return;
     }
@@ -623,9 +626,6 @@ void ec_encode_data_OPAE (  int cell_length,
 	printf("%s:%d cell_length_cci_byte_width	: 0x%04x\n"	, __FILE__, __LINE__, cell_length_cci_byte_width	);
 #endif
 
-	// Dirty skip OPAE_SIMPLE_WRAPPER_call_afu
-	goto out_exit;
-	
     // Call to OPAE AFU
     res = OPAE_SIMPLE_WRAPPER_call_afu( accel_handle, 
                                         erasure_pattern, 
