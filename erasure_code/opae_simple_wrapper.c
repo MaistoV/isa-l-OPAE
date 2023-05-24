@@ -352,38 +352,30 @@ fpga_result OPAE_SIMPLE_WRAPPER_allocate_io_buffers(fpga_handle accel_handle,
 	// Allocate buffers and retrieve addresses
 	// Input buffer
 	res = fpgaPrepareBuffer(accel_handle, size_in, buf_addr_in, workspace_id_in, flag_input);
-printf("%s:%d res %d\n", __FILE__, __LINE__, res);
 	ON_ERR_GOTO_local(res, out_release_input_buffer, "creating shared memory buffer fpgaPrepareBuffer (input)");
 	res = fpgaGetIOAddress(accel_handle, *workspace_id_in, &io_addr_in);
-printf("%s:%d res %d\n", __FILE__, __LINE__, res);
 	ON_ERR_GOTO_local(res, out_release_input_buffer, "creating shared memory buffer fpgaGetIOAddress (input)");
 
 	// Output buffer
 	res = fpgaPrepareBuffer(accel_handle, size_out, buf_addr_out, workspace_id_out, flag_input);
-printf("%s:%d res %d\n", __FILE__, __LINE__, res);
 	ON_ERR_GOTO_local(res, out_release_output_buffer, "creating shared memory buffer fpgaPrepareBuffer (output)");
 	res = fpgaGetIOAddress(accel_handle, *workspace_id_out, &io_addr_out);
-printf("%s:%d res %d\n", __FILE__, __LINE__, res);
 	ON_ERR_GOTO_local(res, out_release_output_buffer, "creating shared memory buffer fpgaGetIOAddress (output)");
 
 	// Load in AFU 
 	res = fpgaWriteMMIO64(accel_handle, 0, HLS_MASTER_READ, io_addr_in);
-printf("%s:%d res %d\n", __FILE__, __LINE__, res);
 	ON_ERR_GOTO_local(res, out_release_output_buffer,  "Load input data address");
 	res = fpgaWriteMMIO64(accel_handle, 0, HLS_MASTER_WRITE, io_addr_out);
-printf("%s:%d res %d\n", __FILE__, __LINE__, res);
 	ON_ERR_GOTO_local(res, out_release_output_buffer, "Load output data address");
 						
 	goto out_exit;
 
 out_release_output_buffer:
 	res = fpgaReleaseBuffer(accel_handle, *workspace_id_out);
-printf("%s:%d res %d\n", __FILE__, __LINE__, res);
 	ON_ERR_GOTO_local(res, out_release_input_buffer, "error fpgaReleaseBuffer(output)");
 
 out_release_input_buffer:
 	res = fpgaReleaseBuffer(accel_handle, *workspace_id_in);
-printf("%s:%d res %d\n", __FILE__, __LINE__, res);
 	ON_ERR_GOTO_local(res, out_exit, "error fpgaReleaseBuffer(input)");
 
 out_exit:
@@ -410,11 +402,10 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 	////////////////////////////////
 	// Serialize CSR inputs
 	uint64_t rs_erasure_csrs = 0;
-	uint64_t erasure_pattern_64 	= erasure_pattern;
-	uint64_t survived_cells_64 		= survived_cells;
-	uint64_t cell_length_64			= ( cell_length / CCI_BYTE_WIDTH );
-	rs_erasure_csrs |= erasure_pattern_64 	<< 0u ;
-	rs_erasure_csrs |= survived_cells_64 	<< 16u;
+	uint32_t survived_cells_32 		= (uint32_t) survived_cells;
+	uint64_t cell_length_64			= (uint64_t) ( cell_length / CCI_BYTE_WIDTH );
+	rs_erasure_csrs |= erasure_pattern;
+	rs_erasure_csrs |= survived_cells_32 	<< 16u;
 	rs_erasure_csrs |= cell_length_64		<< 32u;
 	res = fpgaWriteMMIO64(accel_handle, 0, HLS_CSR_REG, rs_erasure_csrs);
 	ON_ERR_GOTO_local(res, out_unregister_event, "Load CSR data");
@@ -430,7 +421,6 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 	res = fpgaRegisterEvent(accel_handle, FPGA_EVENT_INTERRUPT, *fpgaInterruptEvent, flags);
 	ON_ERR_GOTO_local(res, out_unregister_event, "Could not register event");
 
-
 	////////////////////////////////
 	// Wait for AF to be ready
 	////////////////////////////////
@@ -438,9 +428,11 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 	// TODO: is there a cleaner way?
 	uint64_t busyVal;		
 	do {
-		usleep( SLEEP_TIME_US );
 		res = fpgaReadMMIO64(accel_handle, 0, HLS_BUSY, &busyVal);
 		ON_ERR_GOTO_local(res, out_unregister_event, "checking Busy");
+		if ( busyVal & HLS_BUSY_MASK ) {
+			usleep( SLEEP_TIME_US );
+		}
 	} while ( busyVal & HLS_BUSY_MASK );
 			
 	pfd.events = POLLIN;
@@ -466,6 +458,7 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 #endif
 
 	if ( poll_res <= 0 ) {
+		// TODO: handle this case
 		s_error_count += 1;
 	}
 	else {
@@ -623,7 +616,6 @@ void ec_encode_data_OPAE (  int cell_length,
 	printf("\n");
 #endif
 
-    // Where to retrieve this info?
 #ifdef DEBUG
 	uint32_t cell_length_cci_byte_width = cell_length / CCI_BYTE_WIDTH; // UNTESTED
 	printf("%s:%d erasure_pattern	: 0x%04x\n"	, __FILE__, __LINE__, erasure_pattern	);
@@ -652,6 +644,7 @@ void ec_encode_data_OPAE (  int cell_length,
     #endif
 
     // Pack results in fragments buffer
+    // TODO: vectorize this on 64-bits, or just use memcpy
     for ( int l = 0; l < cell_length; l++ ) {
         coding[0][l] = ((uint8_t(*)[cell_length])reconstructed_blocks_out)[0][l];
     }

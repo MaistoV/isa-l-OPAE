@@ -112,7 +112,7 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 			 unsigned char **coding)
 {
 
-	if (len < 64) { // FPGA minimum supported length
+	if ( len < 64 ) { // FPGA minimum supported length
 		// unsigned char* encoding_matrix;
 		// encoding_matrix = (unsigned char*)malloc( k * );
 
@@ -131,7 +131,7 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 	}
 
 	// Length must be multiple of 64 bytes
-	if ( len % 64 != 0 ) {
+	if ( (len % 64) != 0 ) {
 		// Pad here
 		printf("WARNING: len=%d is not a multiple of 64, unsupported for now, returning\n", len);
 		return;
@@ -141,31 +141,31 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 
 	return;
 
-	while (rows >= 6) {
-		gf_6vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-		g_tbls += 6 * k * 32;
-		coding += 6;
-		rows -= 6;
-	}
-	switch (rows) {
-	case 5:
-		gf_5vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-		break;
-	case 4:
-		gf_4vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-		break;
-	case 3:
-		gf_3vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-		break;
-	case 2:
-		gf_2vect_dot_prod_avx2(len, k, g_tbls, data, coding);
-		break;
-	case 1:
-		gf_vect_dot_prod_avx2(len, k, g_tbls, data, *coding);
-		break;
-	case 0:
-		break;
-	}
+	// while (rows >= 6) {
+	// 	gf_6vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+	// 	g_tbls += 6 * k * 32;
+	// 	coding += 6;
+	// 	rows -= 6;
+	// }
+	// switch (rows) {
+	// case 5:
+	// 	gf_5vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+	// 	break;
+	// case 4:
+	// 	gf_4vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+	// 	break;
+	// case 3:
+	// 	gf_3vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+	// 	break;
+	// case 2:
+	// 	gf_2vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+	// 	break;
+	// case 1:
+	// 	gf_vect_dot_prod_avx2(len, k, g_tbls, data, *coding);
+	// 	break;
+	// case 0:
+	// 	break;
+	// }
 
 }
 
