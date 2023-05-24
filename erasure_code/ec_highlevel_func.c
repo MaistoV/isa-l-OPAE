@@ -139,7 +139,8 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 
 	ec_encode_data_OPAE(len, k, rows, erasure_pattern_global, survival_pattern_global, data, coding);
 
-	return;
+	// Dirty, call ISA-L anyway
+	// return;
 
 	while (rows >= 6) {
 		gf_6vect_dot_prod_avx2(len, k, g_tbls, data, coding);
