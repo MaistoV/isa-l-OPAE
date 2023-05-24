@@ -352,31 +352,31 @@ fpga_result OPAE_SIMPLE_WRAPPER_allocate_io_buffers(fpga_handle accel_handle,
 	// Allocate buffers and retrieve addresses
 	// Input buffer
 	res = fpgaPrepareBuffer(accel_handle, size_in, buf_addr_in, workspace_id_in, flag_input);
-	ON_ERR_GOTO_local(res, out_release_input_buffer, "creating shared memory buffer fpgaPrepareBuffer (input)");
+	ON_ERR_GOTO_local(res, out_exit, "creating shared memory buffer fpgaPrepareBuffer (input)");
 	res = fpgaGetIOAddress(accel_handle, *workspace_id_in, &io_addr_in);
-	ON_ERR_GOTO_local(res, out_release_input_buffer, "creating shared memory buffer fpgaGetIOAddress (input)");
+	ON_ERR_GOTO_local(res, out_exit, "creating shared memory buffer fpgaGetIOAddress (input)");
 
 	// Output buffer
 	res = fpgaPrepareBuffer(accel_handle, size_out, buf_addr_out, workspace_id_out, flag_input);
-	ON_ERR_GOTO_local(res, out_release_output_buffer, "creating shared memory buffer fpgaPrepareBuffer (output)");
+	ON_ERR_GOTO_local(res, out_exit, "creating shared memory buffer fpgaPrepareBuffer (output)");
 	res = fpgaGetIOAddress(accel_handle, *workspace_id_out, &io_addr_out);
-	ON_ERR_GOTO_local(res, out_release_output_buffer, "creating shared memory buffer fpgaGetIOAddress (output)");
+	ON_ERR_GOTO_local(res, out_exit, "creating shared memory buffer fpgaGetIOAddress (output)");
 
 	// Load in AFU 
 	res = fpgaWriteMMIO64(accel_handle, 0, HLS_MASTER_READ, io_addr_in);
-	ON_ERR_GOTO_local(res, out_release_output_buffer,  "Load input data address");
+	ON_ERR_GOTO_local(res, out_exit,  "Load input data address");
 	res = fpgaWriteMMIO64(accel_handle, 0, HLS_MASTER_WRITE, io_addr_out);
-	ON_ERR_GOTO_local(res, out_release_output_buffer, "Load output data address");
+	ON_ERR_GOTO_local(res, out_exit, "Load output data address");
 						
-	goto out_exit;
+// 	goto out_exit;
 
-out_release_output_buffer:
-	res = fpgaReleaseBuffer(accel_handle, *workspace_id_out);
-	ON_ERR_GOTO_local(res, out_release_input_buffer, "error fpgaReleaseBuffer(output)");
+// out_release_output_buffer:
+// 	res = fpgaReleaseBuffer(accel_handle, *workspace_id_out);
+// 	ON_ERR_GOTO_local(res, out_release_input_buffer, "error fpgaReleaseBuffer(output)");
 
-out_release_input_buffer:
-	res = fpgaReleaseBuffer(accel_handle, *workspace_id_in);
-	ON_ERR_GOTO_local(res, out_exit, "error fpgaReleaseBuffer(input)");
+// out_release_input_buffer:
+// 	res = fpgaReleaseBuffer(accel_handle, *workspace_id_in);
+// 	ON_ERR_GOTO_local(res, out_exit, "error fpgaReleaseBuffer(input)");
 
 out_exit:
 
@@ -408,18 +408,18 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 	rs_erasure_csrs |= survived_cells_32 	<< 16u;
 	rs_erasure_csrs |= cell_length_64		<< 32u;
 	res = fpgaWriteMMIO64(accel_handle, 0, HLS_CSR_REG, rs_erasure_csrs);
-	ON_ERR_GOTO_local(res, out_unregister_event, "Load CSR data");
+	ON_ERR_GOTO_local(res, out_exit, "Load CSR data");
 
 	////////////////////////////////
 	// Register event for AFU interrupt
 	////////////////////////////////
 	// Create event 
 	res = fpgaCreateEventHandle(fpgaInterruptEvent);
-	ON_ERR_GOTO_local(res, out_destroy_handle, "error creating event accel_handle`");
+	ON_ERR_GOTO_local(res, out_exit, "error creating event accel_handle`");
 	// Register user interrupt with event accel_handle
 	uint32_t flags = 0; // uses IRQ bit 0, see instantiation of acmm_ccip_host_wr in afu.sv
 	res = fpgaRegisterEvent(accel_handle, FPGA_EVENT_INTERRUPT, *fpgaInterruptEvent, flags);
-	ON_ERR_GOTO_local(res, out_unregister_event, "Could not register event");
+	ON_ERR_GOTO_local(res, out_exit, "Could not register event");
 
 	////////////////////////////////
 	// Wait for AF to be ready
@@ -429,7 +429,7 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 	uint64_t busyVal;		
 	do {
 		res = fpgaReadMMIO64(accel_handle, 0, HLS_BUSY, &busyVal);
-		ON_ERR_GOTO_local(res, out_unregister_event, "checking Busy");
+		ON_ERR_GOTO_local(res, out_exit, "checking Busy");
 		if ( busyVal & HLS_BUSY_MASK ) {
 			usleep( SLEEP_TIME_US );
 		}
@@ -437,7 +437,7 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 			
 	pfd.events = POLLIN;
 	res = fpgaGetOSObjectFromEventHandle(*fpgaInterruptEvent, &pfd.fd);
-	ON_ERR_GOTO_local(res, out_unregister_event, "trying to get file descriptor");
+	ON_ERR_GOTO_local(res, out_exit, "trying to get file descriptor");
 
 	////////////////////////////////
 	// Start AF and wait for result
@@ -448,7 +448,7 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 #endif
 	
 	res = start_and_wait_afu(accel_handle, &pfd, &poll_res);
-	ON_ERR_GOTO_local(res, out_unregister_event, "Starting AFU");
+	ON_ERR_GOTO_local(res, out_exit, "Starting AFU");
 
 #ifdef MEASURE_LATENCY
 	gettimeofday(&tv_end, NULL);
@@ -465,17 +465,17 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 		// check if component is finished 
 		uint64_t doneVal;
 		res = fpgaReadMMIO64(accel_handle, 0, HLS_DONE_REG, &doneVal);
-		ON_ERR_GOTO_local(res, out_unregister_event, "checking Done");
+		ON_ERR_GOTO_local(res, out_exit, "checking Done");
 
 		// clear interrupt in component
 		res = fpgaWriteMMIO64(accel_handle, 0, HLS_DONE_REG, (doneVal | HLS_INTERRUPT_STATUS_MASK));
-		ON_ERR_GOTO_local(res, out_unregister_event, "Clearing interrupt");
+		ON_ERR_GOTO_local(res, out_exit, "Clearing interrupt");
 
 	#ifdef DEBUG			
 		if ( doneVal & HLS_DONE_MASK ) {				
 			uint64_t outputData64;
 			res = fpgaReadMMIO64(accel_handle, 0, HLS_RETURN_DATA, &outputData64);
-			ON_ERR_GOTO_local(res, out_unregister_event, "reading return value");
+			ON_ERR_GOTO_local(res, out_exit, "reading return value");
 
 			uint32_t outputData32 = outputData64 & HLS_RETURN_DATA_MASK;
 			printf("outputData: ");
@@ -501,13 +501,13 @@ fpga_result OPAE_SIMPLE_WRAPPER_call_afu(fpga_handle accel_handle,
 
 	// goto out_exit;
 
-out_unregister_event:
-	res = fpgaUnregisterEvent(accel_handle, FPGA_EVENT_INTERRUPT, *fpgaInterruptEvent);
-	ON_ERR_GOTO_local(res, out_destroy_handle, "error fpgaUnregisterEvent");
+// out_unregister_event:
+// 	res = fpgaUnregisterEvent(accel_handle, FPGA_EVENT_INTERRUPT, *fpgaInterruptEvent);
+// 	ON_ERR_GOTO_local(res, out_destroy_handle, "error fpgaUnregisterEvent");
 
-out_destroy_handle:
-	res = fpgaDestroyEventHandle(fpgaInterruptEvent);
-	ON_ERR_GOTO_local(res, out_exit, "error fpgaDestroyEventHandle");
+// out_destroy_handle:
+// 	res = fpgaDestroyEventHandle(fpgaInterruptEvent);
+// 	ON_ERR_GOTO_local(res, out_exit, "error fpgaDestroyEventHandle");
 
 out_exit:
 	return res;
@@ -574,7 +574,7 @@ void ec_encode_data_OPAE (  int cell_length,
      * Discover/Grab OPAE Resources
 	******************************/
     res = OPAE_SIMPLE_WRAPPER_init( &accel_handle, HLS_AFU_ID );
-    if ( FPGA_OK != res ) goto out_cleanup;
+    if ( FPGA_OK != res ) goto out_exit;
 
     /***************************************
      * Set up and populate host-side memory
@@ -623,6 +623,10 @@ void ec_encode_data_OPAE (  int cell_length,
 	printf("%s:%d cell_length_cci_byte_width	: 0x%04x\n"	, __FILE__, __LINE__, cell_length_cci_byte_width	);
 #endif
 
+	// Dirty trick:
+	// Skip call to AFU
+	goto out_cleanup;
+
     // Call to OPAE AFU
     res = OPAE_SIMPLE_WRAPPER_call_afu( accel_handle, 
                                         erasure_pattern, 
@@ -656,6 +660,7 @@ out_cleanup:
     fprintf(stdout, "%s:%d: fpga_result = %d\n", __FILE__, __LINE__, (int)res);
 #endif
 
+out_exit:
     res = OPAE_SIMPLE_WRAPPER_cleanup( accel_handle, 
                                         &fpgaInterruptEvent, 
                                         input_buf_wsid,  
