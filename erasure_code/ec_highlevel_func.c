@@ -133,7 +133,8 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 		// TODO: initialize g_tbls
 
 		// Encode data
-		ec_encode_data_base(len, k, rows, g_tbls, data, coding);
+		// h_ec_encode_data(len, k, rows, g_tbls, data, coding);
+		ec_encode_data_base(len, k, rows, g_tbls, data, coding); // testing
 		return;
 	}
 

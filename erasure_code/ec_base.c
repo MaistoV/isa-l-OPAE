@@ -40,16 +40,18 @@ void ec_init_tables(int erasure_pattern, int survival_pattern, unsigned char *a,
 	erasure_pattern_global  = 0xffffu & (unsigned int)erasure_pattern;
 	survival_pattern_global = 0xffffu & (unsigned int)survival_pattern;
 
-	return;
+	// return;
 
-	// int i, j;
+	int i, j;
 
 	// for (i = 0; i < rows; i++) {
 	// 	for (j = 0; j < k; j++) {
-	// 		gf_vect_mul_init(*a++, g_tbls);
-	// 		g_tbls += 32;
-	// 	}
-	// }
+	for (i = 0; i < erasure_pattern; i++) {
+		for (j = 0; j < survival_pattern; j++) {
+			gf_vect_mul_init(*a++, g_tbls);
+			g_tbls += 32;
+		}
+	}
 }
 
 unsigned char gf_mul(unsigned char a, unsigned char b)
