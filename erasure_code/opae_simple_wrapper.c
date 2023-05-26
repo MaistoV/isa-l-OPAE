@@ -674,7 +674,6 @@ out_cleanup:
     fprintf(stdout, "%s:%d: fpga_result = %d\n", __FILE__, __LINE__, (int)res);
 #endif
 
-out_exit:
     res = OPAE_SIMPLE_WRAPPER_cleanup( accel_handle, 
                                         &fpgaInterruptEvent, 
                                         input_buf_wsid,  
