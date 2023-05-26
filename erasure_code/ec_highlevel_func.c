@@ -108,65 +108,122 @@ void ec_encode_data_avx(int len, int k, int rows, unsigned char *g_tbls, unsigne
 ///////////////////////////////////////////////////////////////////////
 #include "opae_simple_wrapper.c" 
 
+// Emiprical thresholds derived from system throughput curves for different values of K
+#define THRESHOLD(length) ( ((length) <= 3  ) ? 256u*1024u : \
+							((length) <= 6  ) ? 128u*1024u : \
+							((length) <= 10 ) ? 64u*1024u : \
+											64u*1024u \
+						)
+
 void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsigned char **data,
 			 unsigned char **coding)
 {
 
-	if ( len < 64 ) { // FPGA minimum supported length
-		// unsigned char* encoding_matrix;
-		// encoding_matrix = (unsigned char*)malloc( k * );
+	///////////////////////////////////////////////////////////////////////
+	// Pezzotto_handoof:
+	// This code will go into libhadoop.so:erasure_coder.c
+	// For now it is here to enforce the same behaviour
+	///////////////////////////////////////////////////////////////////////
 
-		// // TODO: generate decoding matrix
+	unsigned int threshold = THRESHOLD(k);
+	if ( len < threshold ) { // FPGA minimum supported length
+		printf("%s:%d: INFO: len=%d < %d and k=%d falling back to ISA-L for performance\n", __FILE__, __LINE__, len, threshold, k);
 
-		// // Initialize g_tbls and runs ec_encode_data_base here
-		// for ( int i = 0; i < rows; i++ ) {
-		// 	for ( int j = 0; j < k; j++ ) {
-		// 		gf_vect_mul_init(*encoding_matrix++, g_tbls);
-		// 		g_tbls += 32;
-		// 	}
-		// }
-		// ec_encode_data_base(len, k, rows, g_tbls, data, coding);
-		printf("WARNING: len=%d < 64 is unsupported for now, returning\n", len);
+		// TODO: generate encoding/decoding matrix
+		// TODO: initialize g_tbls
+
+		// Encode data
+		ec_encode_data_base(len, k, rows, g_tbls, data, coding);
 		return;
 	}
 
 	// Length must be multiple of 64 bytes
-	if ( (len % 64) != 0 ) {
-		// Pad here
-		printf("WARNING: len=%d is not a multiple of 64, unsupported for now, returning\n", len);
+	int reminder = len % 64;
+	// ec_encode_data_OPAE(len - reminder, k, rows, erasure_pattern_global, survival_pattern_global, data, coding); 
+	ec_encode_data_avx(len - reminder, k, rows, g_tbls, data, coding); // testing
+
+	// Exit if everything has been processed
+	if ( reminder == 0 ) {
 		return;
 	}
+	
+	// Process the reminder
+	printf("%s:%d: INFO: len=%d is not a multiple of 64, computing the reminder of %d byte(s) with ISA-L\n", __FILE__, __LINE__, len, reminder);
 
-	ec_encode_data_OPAE(len, k, rows, erasure_pattern_global, survival_pattern_global, data, coding);
+	unsigned int offset = len - reminder -1;
 
-	// Dirty, call ISA-L anyway
-	// return;
+	// The input and output buffer reshaping are inexpensive 
+	// since the requested length of vectors is less than 64
+	// and k and p (rows) are usually not large integers
+
+	// Reshape input data
+	unsigned char ** data_reshaped;
+	data_reshaped = (unsigned char **) malloc( sizeof(unsigned char**) * k );
+	for ( int i = 0; i < k; i++ ) {
+		data_reshaped[i] = (unsigned char *) malloc( sizeof(unsigned char*) * reminder );
+		for ( int j = 0; j < reminder; j++ ) {
+			data_reshaped[i][j] = data[i][ j + offset ];
+		}
+	}	
+		
+	// Allocate output buffers
+	unsigned char ** coding_reshaped;
+	coding_reshaped = (unsigned char **) malloc( sizeof(unsigned char**) * rows );
+	for ( int i = 0; i < rows; i++ ) {
+		coding_reshaped[i] = (unsigned char *) malloc( sizeof(unsigned char*) * reminder );
+	}
+
+	if ( reminder < 32 ) {
+		// TODO: generate encoding/decoding matrix
+		// TODO: initialize g_tbls
+		
+		// Reshape input data
+		// Allocate output buffers
+
+		// Perform encoding
+		// h_ec_encode_data(reminder, k, rows, g_tbls, data_reshaped, coding_reshaped); 
+		ec_encode_data_base(reminder, k, rows, g_tbls, data_reshaped, coding_reshaped); 
+		
+		// Reshape output data
+
+	}
+
+	///////////////////////////////////////////////////////////////////////
+	// The code of hadoop should finish here
+	///////////////////////////////////////////////////////////////////////
 
 	while (rows >= 6) {
-		gf_6vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		gf_6vect_dot_prod_avx2(reminder, k, g_tbls, data_reshaped, coding_reshaped);
 		g_tbls += 6 * k * 32;
 		coding += 6;
 		rows -= 6;
 	}
 	switch (rows) {
 	case 5:
-		gf_5vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		gf_5vect_dot_prod_avx2(reminder, k, g_tbls, data_reshaped, coding_reshaped);
 		break;
 	case 4:
-		gf_4vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		gf_4vect_dot_prod_avx2(reminder, k, g_tbls, data_reshaped, coding_reshaped);
 		break;
 	case 3:
-		gf_3vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		gf_3vect_dot_prod_avx2(reminder, k, g_tbls, data_reshaped, coding_reshaped);
 		break;
 	case 2:
-		gf_2vect_dot_prod_avx2(len, k, g_tbls, data, coding);
+		gf_2vect_dot_prod_avx2(reminder, k, g_tbls, data_reshaped, coding_reshaped);
 		break;
 	case 1:
-		gf_vect_dot_prod_avx2(len, k, g_tbls, data, *coding);
+		gf_vect_dot_prod_avx2(reminder, k, g_tbls, data_reshaped, *coding_reshaped);
 		break;
 	case 0:
 		break;
 	}
+
+	// Reshape output data
+	for ( int i = 0; i < rows; i++ ) {
+		for ( int j = 0; j < reminder; j++ ) {
+			coding[i][ j + offset ] = coding_reshaped[i][j];
+		}
+	}		
 
 }
 
