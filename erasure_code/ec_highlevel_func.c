@@ -151,7 +151,7 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 	// Process the reminder
 	printf("%s:%d: INFO: len=%d is not a multiple of 64, computing the reminder of %d byte(s) with ISA-L\n", __FILE__, __LINE__, len, reminder);
 
-	unsigned int offset = len - reminder -1;
+	unsigned int offset = len - reminder;
 
 	// The input and output buffer reshaping are inexpensive 
 	// since the requested length of vectors is less than 64
