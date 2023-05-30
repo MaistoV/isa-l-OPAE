@@ -133,7 +133,7 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 		// TODO: initialize g_tbls
 
 		// Encode data
-		// h_ec_encode_data(len, k, rows, g_tbls, data, coding);
+		// h_ec_encode_data(len, k, rows, g_tbls, data, coding); // From libhadoop.so
 		ec_encode_data_base(len, k, rows, g_tbls, data, coding); // testing
 		return;
 	}
@@ -141,7 +141,38 @@ void ec_encode_data_avx2(int len, int k, int rows, unsigned char *g_tbls, unsign
 	// Length must be multiple of 64 bytes
 	int reminder = len % 64;
 	// ec_encode_data_OPAE(len - reminder, k, rows, erasure_pattern_global, survival_pattern_global, data, coding); 
-	ec_encode_data_avx(len - reminder, k, rows, g_tbls, data, coding); // testing
+	// Dirty testing : call avx or avx2 50% of the times each
+	if ( (data[0][0] & 0x08u) == 0u ) {
+		ec_encode_data_avx(len - reminder, k, rows, g_tbls, data, coding); // testing
+	}
+	else {
+		while (rows >= 6) {
+			gf_6vect_dot_prod_avx2(len - reminder, k, g_tbls, data, coding);
+			g_tbls += 6 * k * 32;
+			coding += 6;
+			rows -= 6;
+		}
+		switch (rows) {
+		case 5:
+			gf_5vect_dot_prod_avx2(len - reminder, k, g_tbls, data, coding);
+			break;
+		case 4:
+			gf_4vect_dot_prod_avx2(len - reminder, k, g_tbls, data, coding);
+			break;
+		case 3:
+			gf_3vect_dot_prod_avx2(len - reminder, k, g_tbls, data, coding);
+			break;
+		case 2:
+			gf_2vect_dot_prod_avx2(len - reminder, k, g_tbls, data, coding);
+			break;
+		case 1:
+			gf_vect_dot_prod_avx2(len - reminder, k, g_tbls, data, *coding);
+			break;
+		case 0:
+			break;
+		}
+	}
+
 
 	// Exit if everything has been processed
 	if ( reminder == 0 ) {
